@@ -1,1 +1,66 @@
-#This is main workflow
+---
+
+name: GCP Services Deployment
+on: 
+  workflow_dispatch:
+    inputs:
+      GCP_Service:
+        type: choice
+        description: Resource to be created  
+        options:
+          - Storage Bucket
+          - Cloud function  
+        required: true
+      Name:
+        description: 'Name of the GCP resource to be created'
+        required: true
+      Region:
+        description: 'Region where to be created'
+        required: true
+
+jobs:
+  GCP_Bucket_Deployment:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.GCP_Service == 'Storage Bucket' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Setup Pythom
+        uses: actions/setup-python@v2
+        with: 
+          python-version: 3.8
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@master
+        with:
+          version: '290.0.1'
+          service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v0'
+        with:
+          credentials_json: '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}'
+
+      - name: Install pip package for gcloud
+        run: pip install google-cloud-storage
+        
+      - name: Execute Python code
+        run: |
+          name_of_bucket=${{ github.event.inputs.Name }} region=${{ github.event.inputs.Region }} python Python_scripts/bucket.py
+
+  GCP_Cloud_Function_Deployment:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.GCP_Service == 'Cloud Function' }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: print
+        run: echo "gcp cloud function"
+      - name: Setup Pythom
+        uses: actions/setup-python@v2
+        with: 
+          python-version: 3.8
+      - name: Execute Python code
+        run: |
+          name_of_cloud_function=${{ github.event.inputs.Name }} region=${{ github.event.inputs.Region }} python Python_scripts/cloud_function.py
